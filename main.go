@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -58,6 +60,12 @@ type OpenWeatherMapAPI struct {
 	Cod      int    `json:"cod"`
 }
 
+type SplunkEvent struct {
+	Event  string `json:"event"`
+	Host   string `json:"host"`
+	Source string `json:"source"`
+}
+
 func main() {
 
 	// Get vars from .env file
@@ -70,8 +78,10 @@ func main() {
 	location_id := os.Getenv("LOCATION_ID")
 	units := os.Getenv("UNITS")
 	poll_url := "https://api.openweathermap.org/data/2.5/weather?id=" + location_id + "&units=" + units + "&appid=" + api_key
+	splunkKey := os.Getenv("SPLUNKKEY")
+	splunkURL := os.Getenv("SPLUNKURL")
 
-	// Poll the API
+	// Poll OpenWeatherMap API
 	response, err := http.Get(poll_url)
 
 	if err != nil {
@@ -84,16 +94,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Show the data we got
-	fmt.Println("Raw Data")
-	fmt.Println(string(response_data))
-	fmt.Println("")
+	// Send data to Splunk
+	var splunkEvent SplunkEvent
 
-	var weather_data OpenWeatherMapAPI
-	json.Unmarshal([]byte(response_data), &weather_data)
+	splunkEvent.Event = string(response_data)
+	splunkEvent.Host = "OpenWeatherMap"
+	splunkEvent.Source = "OpenWeatherMapAPI"
 
-	fmt.Println(weather_data.Name)
-	fmt.Printf("%+v\n", weather_data.Main)
-	fmt.Println(weather_data.Main.Temp)
+	payload, _ := json.Marshal(splunkEvent)
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	splunkReq, _ := http.NewRequest("POST", splunkURL, bytes.NewBuffer(payload))
+	splunkReq.Header.Add("Authorization", "Splunk "+splunkKey)
+	splunkReq.Header.Add("Content-Type", "application/json")
+
+	splunkResp, splunkErr := http.DefaultClient.Do(splunkReq)
+
+	if splunkErr != nil {
+		log.Fatalln(splunkErr)
+	}
+
+	defer splunkResp.Body.Close()
 
 }
