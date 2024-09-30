@@ -77,7 +77,7 @@ func main() {
 	api_key := os.Getenv("API_KEY")
 	location_id := os.Getenv("LOCATION_ID")
 	units := os.Getenv("UNITS")
-	poll_url := "https://api.openweathermap.org/data/3.0/weather?id=" + location_id + "&units=" + units + "&appid=" + api_key
+	poll_url := "https://api.openweathermap.org/data/2.5/weather?id=" + location_id + "&units=" + units + "&appid=" + api_key
 	splunkKey := os.Getenv("SPLUNKKEY")
 	splunkURL := os.Getenv("SPLUNKURL")
 
