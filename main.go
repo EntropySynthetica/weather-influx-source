@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -89,7 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	response_data, err := ioutil.ReadAll(response.Body)
+	response_data, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
